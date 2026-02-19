@@ -4,7 +4,7 @@
 # ============================================
 # Stage 1: Builder - Install and cache models
 # ============================================
-FROM python:3.10-slim as builder
+FROM python:3.10-slim AS builder
 
 WORKDIR /build
 
@@ -61,6 +61,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     tini \
+    zstd \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
