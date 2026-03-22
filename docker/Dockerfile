@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     libgomp1 \
     git \
     curl \
+    zstd \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Ollama
@@ -43,11 +44,13 @@ COPY . .
 # Create necessary directories
 RUN mkdir -p vector_db temp_uploads user_data logs data
 
-# Expose Streamlit port
-EXPOSE 8501
+# Removed Streamlit port usage
 
 # Expose Ollama port
 EXPOSE 11434
+
+# Expose FastAPI port
+EXPOSE 8000
 
 # Create startup script
 RUN echo '#!/bin/bash\n\
@@ -69,18 +72,16 @@ RUN echo '#!/bin/bash\n\
     echo "Verifying Hugging Face models..."\n\
     python3 -c "from transformers import BlipProcessor; BlipProcessor.from_pretrained('"'"'Salesforce/blip-image-captioning-base'"'"')" || echo "BLIP model check failed"\n\
     \n\
-    echo "Starting SmartRAG application..."\n\
-    streamlit run chatbot_app.py --server.port=8501 --server.address=0.0.0.0\n\
+    echo "Starting FastAPI server..."\n\
+    exec uvicorn api:app --host 0.0.0.0 --port 8000\n\
     ' > /app/start.sh && chmod +x /app/start.sh
 
 # Set environment variables
-ENV STREAMLIT_SERVER_PORT=8501
-ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
 ENV OLLAMA_HOST=http://localhost:11434
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8501/_stcore/health || exit 1
+    CMD curl -f http://localhost:8000/api/health || exit 1
 
 # Run startup script
 CMD ["/app/start.sh"]
