@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   smartrag:
@@ -10,8 +9,8 @@ services:
     image: smartrag:latest
     container_name: smartrag-app
     ports:
-      - "8501:8501"  # Streamlit UI
-      - "11434:11434"  # Ollama API
+      - "11434:11434"  # Ollama
+      - "8000:8000"  # FastAPI
     volumes:
       # Persist vector database
       - smartrag_vector_db:/app/vector_db
@@ -26,8 +25,6 @@ services:
       # Ollama models persistence (updated path for non-root user)
       - ollama_models:/home/smartrag/.ollama
     environment:
-      - STREAMLIT_SERVER_PORT=8501
-      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
       - OLLAMA_HOST=http://localhost:11434
       - PYTHONUNBUFFERED=1
       - MAX_FILE_SIZE_MB=50
@@ -36,9 +33,7 @@ services:
       # - SMARTRAG_DEBUG=false
     restart: unless-stopped
     healthcheck:
-      test: |
-        curl -f http://localhost:8501/_stcore/health && \
-        curl -f http://localhost:11434/api/tags > /dev/null || exit 1
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -116,6 +111,17 @@ services:
 #    restart: unless-stopped
 #    networks:
 #      - smartrag-network
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: smartrag-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - smartrag
+    restart: unless-stopped
 
 volumes:
   ollama_models:

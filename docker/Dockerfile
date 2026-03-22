@@ -59,11 +59,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrender-dev \
     libgomp1 \
     curl \
-    ca-certificates \
-    tini \
     zstd \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Ollama
 RUN curl -fsSL https://ollama.com/install.sh | sh
@@ -93,14 +90,15 @@ COPY --chown=smartrag:smartrag . .
 RUN mkdir -p vector_db temp_uploads user_data logs data && \
     chown -R smartrag:smartrag vector_db temp_uploads user_data logs data
 
-# Create directory for Ollama data
-RUN mkdir -p /home/smartrag/.ollama && \
-    chown -R smartrag:smartrag /home/smartrag/.ollama
+# Removed Streamlit port usage
 
 # Expose ports
 EXPOSE 8501 11434
 
-# Create production-ready startup script with proper error handling
+# Expose FastAPI port
+EXPOSE 8000
+
+# Create startup script
 RUN echo '#!/bin/bash\n\
     set -euo pipefail\n\
     \n\
@@ -155,61 +153,16 @@ RUN echo '#!/bin/bash\n\
     pull_model "llama3.1:8b"\n\
     pull_model "nomic-embed-text"\n\
     \n\
-    # Verify Hugging Face models\n\
-    echo "[4/5] Verifying cached models..."\n\
-    python3 -c "\n\
-    from transformers import BlipProcessor, CLIPProcessor\n\
-    import whisper\n\
-    try:\n\
-    BlipProcessor.from_pretrained('\''Salesforce/blip-image-captioning-base'\'')\n\
-    print('\''  ✓ BLIP model verified'\'')\n\
-    CLIPProcessor.from_pretrained('\''openai/clip-vit-base-patch32'\'')\n\
-    print('\''  ✓ CLIP model verified'\'')\n\
-    whisper.load_model('\''base'\'')\n\
-    print('\''  ✓ Whisper model verified'\'')\n\
-    except Exception as e:\n\
-    print(f'\''  ⚠ Warning: Model verification failed: {e}'\'')\n\
-    " || echo "  ⚠ Warning: Model verification failed"\n\
-    \n\
-    # Start SmartRAG application\n\
-    echo "[5/5] Starting SmartRAG application..."\n\
-    echo "========================================"\n\
-    echo "Application ready at http://localhost:8501"\n\
-    echo "Ollama API available at http://localhost:11434"\n\
-    echo "========================================"\n\
-    \n\
-    exec streamlit run chatbot_app.py \\\n\
-    --server.port=8501 \\\n\
-    --server.address=0.0.0.0 \\\n\
-    --server.headless=true \\\n\
-    --server.fileWatcherType=none \\\n\
-    --browser.gatherUsageStats=false\n\
+    echo "Starting FastAPI server..."\n\
+    exec uvicorn api:app --host 0.0.0.0 --port 8000\n\
     ' > /app/start.sh && chmod +x /app/start.sh
 
 # Set environment variables
-ENV STREAMLIT_SERVER_PORT=8501 \
-    STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
-    STREAMLIT_SERVER_HEADLESS=true \
-    STREAMLIT_BROWSER_GATHER_USAGE_STATS=false \
-    OLLAMA_HOST=http://localhost:11434 \
-    OLLAMA_MODELS=/home/smartrag/.ollama/models \
-    PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+ENV OLLAMA_HOST=http://localhost:11434
 
-# Security: Set file size limits via environment
-ENV MAX_FILE_SIZE_MB=50 \
-    MAX_UPLOAD_SIZE=52428800
-
-# Switch to non-root user
-USER smartrag
-
-# Comprehensive health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
-    CMD curl -f http://localhost:8501/_stcore/health && \
-    curl -f http://localhost:11434/api/tags > /dev/null || exit 1
-
-# Use tini as init system for proper signal handling
-ENTRYPOINT ["/usr/bin/tini", "--"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/api/health || exit 1
 
 # Run startup script
 CMD ["/bin/bash", "/app/start.sh"]
