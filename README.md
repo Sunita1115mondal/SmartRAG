@@ -2,8 +2,6 @@
 
 A production-ready RAG system enabling intelligent conversations with documents, images, and audio files. Built with local-first AI models for complete privacy and offline operation.
 
-![SmartRAG Interface](https://github.com/user-attachments/assets/7b413c33-3208-405b-a4f9-b18381807216)
-
 ## Quick Start
 
 ```bash
