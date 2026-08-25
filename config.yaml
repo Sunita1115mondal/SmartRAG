@@ -8,7 +8,7 @@ system:
 models:
   # LLM for response generation (offline with Ollama)
   llm_type: "ollama"
-  llm_model: "llama3.1:8b" # Llama 3.1 8B model (available in Ollama)
+  llm_model: "qwen2.5:3b" # Llama 3.1 8B model (available in Ollama)
   ollama_host: "http://localhost:11434"
 
   # Text embedding model (using Ollama's embedding model)
@@ -20,6 +20,7 @@ models:
 
   # Speech-to-text model (keeping audio processing)
   whisper_model: "base"
+  whisper_device: "cpu"
 
 vector_store:
   type: "chromadb"

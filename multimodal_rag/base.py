@@ -317,8 +317,9 @@ class OllamaLLM(BaseLLM):
                 options={
                     'temperature': kwargs.get('temperature', 0.7),
                     'top_p': kwargs.get('top_p', 0.9),
-                    'max_tokens': kwargs.get('max_tokens', 2048)
-                }
+                    'num_ctx': 2048,
+                    'num_predict': kwargs.get('max_tokens', 512)
+        }
             )
             for chunk in stream:
                 if 'message' in chunk and 'content' in chunk['message']:

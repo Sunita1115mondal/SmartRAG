@@ -16,7 +16,6 @@ def check_environment():
     # Check if we're in the right directory
     if not Path("chatbot_app.py").exists():
         errors.append("❌ chatbot_app.py not found. Run this script from the project root directory.")
-    
     # Check if config exists
     if not Path("config.yaml").exists():
         errors.append("❌ config.yaml not found. Configuration file is required.")
